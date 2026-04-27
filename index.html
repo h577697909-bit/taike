@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tank Battle: Neon Frontline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/style.css" />
+  <script src="./js/crypto-js.min.js"></script>
+  <script src="./js/PayApi-v2.js"></script>
+  
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-glow"></div>
+        <div>
+          <h1 class="brand-title">Tank Battle</h1>
+          <p class="brand-subtitle">Daily Rewards • Star Zones • Elite Skins</p>
+        </div>
+      </div>
+      <nav class="top-actions">
+        <button class="btn ghost" data-nav="home">Home</button>
+        <button class="btn ghost" data-nav="game">Game</button>
+        <button class="btn ghost" data-nav="stages">Stages</button>
+        <button class="btn ghost" data-nav="profile">Profile</button>
+        <button class="btn ghost" data-nav="settings">Settings</button>
+        <button class="btn ghost" data-nav="shop">Armory</button>
+        <button class="btn ghost" data-nav="legal">Legal</button>
+      </nav>
+    </header>
+
+    <main class="page-stack">
+      <section id="page-home" class="page active" aria-label="Home Page">
+        <div class="hero-grid">
+          <div class="hero-card glass-card">
+            <div class="eyebrow">Arcade • Neon • Responsive</div>
+            <h2>Tank Battle: Neon Frontline</h2>
+            <p class="hero-text">
+              A polished arcade tank battle with boss zones, item drops, daily rewards, achievements, skins, and mobile-ready controls.
+            </p>
+            <div class="hero-actions">
+              <button id="startGameBtn" class="btn neon large">Deploy</button>
+              <button class="btn ghost large" data-nav="stages">Zone Select</button>
+              <button class="btn secondary large" data-nav="shop">Open Armory</button>
+            </div>
+            <div class="pill-row">
+              <span class="pill">Arcade Combat</span>
+              <span class="pill">Impact Audio</span>
+              <span class="pill">Web Ready</span>
+              <span class="pill">Gear Drops</span>
+              <span class="pill boss-pill">Boss Zones</span>
+            </div>
+            <div class="home-stage-strip">
+              <div>
+                <span class="muted">Selected Zone</span>
+                <strong id="homeSelectedStage">Zone 1 • Neon Outpost</strong>
+              </div>
+              <button class="btn mini secondary" data-nav="stages">Choose Zone</button>
+            </div>
+            <div class="hero-visual-panel">
+              <img class="hero-scene-image" src="./assets/images/hero-battle-scene.svg" alt="Tank battle hero scene with player tank, boss tank, and neon battlefield" />
+              <div class="hero-visual-copy">
+                <div class="eyebrow">New in V4</div>
+                <strong>Boss zones now include warning intros, stronger rewards, and direct zone selection.</strong>
+                <span>Pick your starting zone, face a War Boss every 3 zones, and collect better rewards as the run escalates.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-side">
+            <div class="glass-card auth-summary-card">
+              <div class="card-header-row">
+                <h3>Account</h3>
+                <span id="authStateBadge" class="status-badge">Guest</span>
+              </div>
+              <p id="authSummaryText" class="muted">Guest trial active: Zone 1 is free. Sign in to unlock the full campaign.</p>
+              <div class="action-grid two">
+                <button id="openLoginBtn" class="btn secondary">Create Account</button>
+                <button id="logoutBtn" class="btn danger">Logout</button>
+              </div>
+            </div>
+
+            <div class="glass-card leaderboard-card">
+              <div class="card-header-row">
+                <h3>Leaderboard</h3>
+                <button id="refreshLeaderboardBtn" class="btn mini ghost">Refresh</button>
+              </div>
+              <div id="leaderboardList" class="leaderboard-list"></div>
+            </div>
+
+            <div class="glass-card boss-preview-card">
+              <div class="card-header-row">
+                <h3>Boss Preview</h3>
+                <span class="status-badge danger">Zone 3 / 6 / 9...</span>
+              </div>
+              <img class="boss-preview-image" src="./assets/images/boss-overlord-card.svg" alt="Boss preview" />
+            </div>
+
+            <div class="glass-card v7-reward-card">
+              <div class="card-header-row">
+                <h3>Daily Drop</h3>
+                <span id="dailyRewardBadge" class="status-badge blue">READY</span>
+              </div>
+              <p id="dailyRewardText" class="muted">Claim today’s Credits and keep your streak alive.</p>
+              <button id="claimDailyBtn" class="btn neon full-width">CLAIM DROP</button>
+            </div>
+
+            <div class="glass-card v7-achievement-card">
+              <div class="card-header-row">
+                <h3>Mission Goals</h3>
+                <button class="btn mini ghost" data-nav="profile">View All</button>
+              </div>
+              <div id="homeAchievementPreview" class="v7-mini-list"></div>
+            </div>
+          </div>
+
+          
+        </div>
+      </section>
+
+      <section id="page-auth" class="page" aria-label="Account Page">
+        <div class="center-wrap narrow">
+          <div class="glass-card auth-card">
+            <div class="card-header-row">
+              <h2>Create Pilot ID</h2>
+              <button class="btn mini ghost" data-nav="home">Back</button>
+            </div>
+            <form id="loginForm" class="form-stack">
+              <label>
+                <span>Pilot Email</span>
+                <input id="loginEmail" type="email" placeholder="you@example.com" required />
+              </label>
+              <label>
+                <span>Access Code</span>
+                <input id="loginPassword" type="password" placeholder="6+ characters" required minlength="6" />
+              </label>
+              <div class="action-grid two">
+                <button type="submit" class="btn neon">Create Account</button>
+                <button id="guestLoginBtn" type="button" class="btn secondary">Guest Run</button>
+              </div>
+            </form>
+            <div class="divider">or continue with</div>
+            <div class="action-grid two">
+              <button id="googleLoginBtn" class="btn social">Google</button>
+              <button id="appleLoginBtn" class="btn social">Apple</button>
+            </div>
+            <p class="muted small-text">New pilots are created locally. Google and Apple are visual mock buttons only.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-game" class="page" aria-label="Game Page">
+        <div class="game-layout">
+          <aside class="glass-card game-sidebar">
+            <div class="card-header-row">
+              <h3>Game HUD</h3>
+              <span id="gameStateBadge" class="status-badge blue">Ready</span>
+            </div>
+            <div class="boss-stage-strip"><span class="muted">Boss Wave</span><strong id="hudBossState">Preparing</strong></div><div class="stats-grid">
+              <div class="stat-card"><span>Player</span><strong id="hudPlayer">Guest</strong></div>
+              <div class="stat-card"><span>HP</span><strong id="hudHp">100</strong></div>
+              <div class="stat-card"><span>Score</span><strong id="hudScore">0</strong></div>
+              <div class="stat-card"><span>Enemies</span><strong id="hudEnemies">0</strong></div>
+              <div class="stat-card"><span>Best</span><strong id="hudBest">0</strong></div>
+              <div class="stat-card"><span>Mode</span><strong id="hudMode">Normal</strong></div>
+              <div class="stat-card"><span>Stage</span><strong id="hudStage">1</strong></div>
+              <div class="stat-card"><span>Lives</span><strong id="hudLives">3</strong></div>
+              <div class="stat-card"><span>Coins</span><strong id="hudCoins">0</strong></div>
+              <div class="stat-card"><span>Skin</span><strong id="hudSkin">Classic</strong></div>
+              <div class="stat-card"><span>Weapon</span><strong id="hudWeapon">Cannon</strong></div>
+            </div>
+            <div class="control-panel">
+              <button id="newGameBtn" class="btn neon">New Game</button>
+              <button id="pauseGameBtn" class="btn secondary">Pause</button>
+              <button id="resumeGameBtn" class="btn secondary">Resume</button>
+            </div>
+            <div class="weapon-switcher">
+              <div class="card-header-row compact-right">
+                <h4>Weapons</h4>
+                <span class="muted">Drop-only weapons</span>
+              </div>
+              <div id="weaponSwitchGrid" class="weapon-switch-grid"></div>
+            </div>
+            <div class="tips-box">
+              <h4>Controls</h4>
+              <p>Move: WASD / Arrow Keys</p>
+              <p>Shoot: Space</p>
+              <p>Pause: P</p>
+              <p>Collect drops to gain coins, buffs, and temporary weapons.</p>
+            </div>
+            <div class="drop-guide-box" aria-label="Drop Guide">
+              <div class="card-header-row compact-right">
+                <h4>Drop Guide</h4>
+                <span class="muted">Drop icon guide</span>
+              </div>
+              <div class="drop-guide-grid">
+                <div><span class="drop-guide-icon coin">💰</span><strong>Credits</strong><small>Credit reward</small></div>
+                <div><span class="drop-guide-icon repair">＋</span><strong>Repair</strong><small>Restore Armor</small></div>
+                <div><span class="drop-guide-icon shield">🛡</span><strong>Shield</strong><small>Temporary Shield</small></div>
+                <div><span class="drop-guide-icon rapid">⚡</span><strong>Rapid</strong><small>Fire-rate Boost</small></div>
+                <div><span class="drop-guide-icon bomb">💣</span><strong>EMP</strong><small>Emergency EMP</small></div>
+                <div><span class="drop-guide-icon burst">⋯</span><strong>Burst</strong><small>Triple-shot Weapon</small></div>
+                <div><span class="drop-guide-icon rail">ϟ</span><strong>Rail</strong><small>Piercing Weapon</small></div>
+              </div>
+            </div>
+          </aside>
+
+          <div class="glass-card canvas-wrap" id="canvasWrap">
+            <canvas id="gameCanvas" width="1040" height="700" aria-label="Tank Battle Game Canvas"></canvas>
+            <div class="mobile-hud" aria-label="Mobile Status Bar">
+              <div class="mobile-hud-chip"><span>HP</span><strong id="hudMobileHp">100</strong></div>
+              <div class="mobile-hud-chip"><span>Score</span><strong id="hudMobileScore">0</strong></div>
+              <div class="mobile-hud-chip"><span>Coins</span><strong id="hudMobileCoins">0</strong></div>
+              <div class="mobile-hud-chip"><span>Stage</span><strong id="hudMobileStage">1</strong></div>
+              <button id="mobileNewGameBtn" class="mobile-mini-btn" aria-label="Restart">NEW</button>
+              <button id="mobileFullscreenBtn" class="mobile-mini-btn highlight" aria-label="Enter Fullscreen">FULL</button>
+              <button id="mobileLobbyBtn" class="mobile-mini-btn lobby" data-nav="home" aria-label="Back to Lobby">LOBBY</button>
+            </div>
+
+            <div class="touch-controls" aria-label="Mobile Touch Controls">
+              <div id="joystickZone" class="joystick-zone" aria-label="Movement Joystick">
+                <div class="joystick-ring"></div>
+                <div id="joystickKnob" class="joystick-knob"></div>
+                <span class="touch-control-label">MOVE</span>
+              </div>
+              <div id="mobileDpad" class="mobile-dpad" aria-label="Directional Buttons">
+                <button class="dpad-btn up" data-move="up" aria-label="Move up">▲</button>
+                <button class="dpad-btn left" data-move="left" aria-label="Move left">◀</button>
+                <button class="dpad-btn down" data-move="down" aria-label="Move down">▼</button>
+                <button class="dpad-btn right" data-move="right" aria-label="Move right">▶</button>
+              </div>
+              <div class="mobile-action-stack" aria-label="Mobile Action Buttons">
+                <button id="mobileShootBtn" class="touch-action-btn fire" aria-label="Fire Button">FIRE</button>
+                <button id="mobilePauseBtn" class="touch-action-btn pause" aria-label="Pause Button">Ⅱ</button>
+              </div>
+            </div>
+            <div id="bossIntroOverlay" class="boss-intro-overlay hidden" aria-live="polite"></div>
+            <div id="gameOverlay" class="game-overlay hidden" aria-live="polite"></div>
+            <div id="resultPanel" class="result-panel hidden" aria-live="polite">
+              <div class="result-card">
+                <div class="eyebrow">Run Complete</div>
+                <h2 id="resultTitle">MISSION FAILED</h2>
+                <div class="result-score"><span>FINAL SCORE</span><strong id="resultScore">0</strong></div>
+                <div class="result-stats">
+                  <div><span>ZONE</span><strong id="resultStage">1</strong></div>
+                  <div><span>KOS</span><strong id="resultKills">0</strong></div>
+                  <div><span>CREDITS</span><strong id="resultCoins">0</strong></div>
+                </div>
+                <div id="resultStars" class="result-stars" aria-label="Zone Star Rating">☆☆☆</div>
+                <div id="resultRewards" class="result-rewards"></div>
+                <div class="result-actions">
+                  <button id="resultRetryBtn" class="btn neon">NEW RUN</button>
+                  <button id="resultUpgradeBtn" class="btn secondary">UPGRADE</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+<aside class="quick-item-rail" aria-label="Battle Item Rail">
+            <div class="quick-item-rail-head">
+              <span class="eyebrow">Battle Items</span>
+              <strong>Loadout</strong>
+            </div>
+            <div class="quick-item-dock" aria-label="Quick Item Rail">
+              <button class="quick-item-btn quick-use-btn" data-item="repair" aria-label="Use Repair">
+                <span class="quick-icon">＋</span>
+                <span class="quick-label">Repair</span>
+                <span class="quick-badge" id="count-repair">FREE</span>
+              </button>
+              <button class="quick-item-btn quick-use-btn" data-item="shield" aria-label="Use Shield">
+                <span class="quick-icon">🛡</span>
+                <span class="quick-label">Shield</span>
+                <span class="quick-badge" id="count-shield">FREE</span>
+              </button>
+              <button class="quick-item-btn quick-use-btn" data-item="rapid" aria-label="Use Rapid">
+                <span class="quick-icon">⚡</span>
+                <span class="quick-label">Rapid</span>
+                <span class="quick-badge" id="count-rapid">FREE</span>
+              </button>
+              <button class="quick-item-btn quick-use-btn" data-item="bomb" aria-label="Use EMP">
+                <span class="quick-icon">💣</span>
+                <span class="quick-label">Bomb</span>
+                <span class="quick-badge" id="count-bomb">FREE</span>
+              </button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <div id="quickPurchaseModal" class="quick-purchase-modal hidden" aria-hidden="true">
+        <div class="quick-purchase-backdrop" data-close-quick-purchase></div>
+        <div class="quick-purchase-panel" role="dialog" aria-modal="true" aria-labelledby="quickPurchaseTitle">
+          <div class="quick-purchase-art">
+            <div id="quickPurchaseIcon" class="quick-purchase-icon">+</div>
+            <div class="quick-purchase-copy">
+              <div class="eyebrow">Battle Supply</div>
+              <div class="quick-purchase-chip">Mobile Shop Card</div>
+            </div>
+          </div>
+          <button class="quick-purchase-close" id="closeQuickPurchaseBtn" aria-label="Close">×</button>
+          <div class="eyebrow">Quick Buy</div>
+          <h3 id="quickPurchaseTitle">Purchase Item</h3>
+          <p id="quickPurchaseDesc" class="muted">This item is empty. Spend Credits to restock instantly.</p>
+          <div class="quick-purchase-meta">
+            <div><span>Current Credits</span><strong id="quickPurchaseCoins">0</strong></div>
+            <div><span>Cost</span><strong id="quickPurchaseCost">0</strong></div>
+          </div>
+          <div class="quick-purchase-actions">
+            <button id="quickPurchaseConfirmBtn" class="btn neon">Buy Now</button>
+            <button id="quickPurchaseCancelBtn" class="btn ghost">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="guestGateModal" class="guest-gate-modal hidden" aria-hidden="true">
+        <div class="guest-gate-backdrop" data-close-guest-gate></div>
+        <div class="guest-gate-panel" role="dialog" aria-modal="true" aria-labelledby="guestGateTitle">
+          <button id="closeGuestGateBtn" class="guest-gate-close" aria-label="Close">×</button>
+          <div class="eyebrow">Guest Trial Complete</div>
+          <h3 id="guestGateTitle">Sign In to Continue</h3>
+          <p class="muted">Guest mode only includes Zone 1. Sign in to unlock more zones, boss fights, skins, credit inventory, and score history.</p>
+          <div class="guest-gate-benefits">
+            <span>✓ Unlock 12 zones</span>
+            <span>✓ Save Credits and skins</span>
+            <span>✓ Claim Boss rewards</span>
+          </div>
+          <div class="guest-gate-actions">
+            <button id="guestGateLoginBtn" class="btn neon">Register / Create Account</button>
+            <button id="guestGateStayBtn" class="btn ghost">Replay Stage 1</button>
+          </div>
+        </div>
+      </div>
+
+
+
+      <div id="tutorialPanel" class="tutorial-panel hidden" aria-hidden="true">
+        <div class="tutorial-card">
+          <div class="eyebrow">Boot Camp</div>
+          <h3>Ready Up, Commander</h3>
+          <p>Move with WASD, arrow keys, joystick, or mobile buttons. Tap FIRE to shoot. Collect drops to upgrade your run.</p>
+          <div class="tutorial-steps">
+            <span>① Move</span><span>② Fire</span><span>③ Grab Drops</span><span>④ Protect Base</span>
+          </div>
+          <button id="tutorialGotItBtn" class="btn neon full-width">GOT IT</button>
+        </div>
+      </div>
+
+      <div id="starterOfferModal" class="starter-offer-modal hidden" aria-hidden="true">
+        <div class="starter-offer-panel">
+          <button id="closeStarterOfferBtn" class="quick-purchase-close" aria-label="Close">×</button>
+          <div class="eyebrow">Limited Starter Deal</div>
+          <h3>LAUNCH STARTER PACK</h3>
+          <p>500 Credits, Shield Core, and Rapid Fire for your next push.</p>
+          <div class="offer-price">$1.99 <span>Mock checkout</span></div>
+          <button id="starterOfferClaimBtn" class="btn neon full-width">CLAIM DEAL</button>
+        </div>
+      </div>
+      <section id="page-stages" class="page" aria-label="Zone Select Page">
+        <div class="center-wrap wide">
+          <div class="glass-card stage-select-card">
+            <div class="card-header-row">
+              <div>
+                <h2>Zone Select</h2>
+                <p class="muted">Choose your starting zone. Guest pilots can only play Zone 1; create an account to unlock the full campaign.</p>
+              </div>
+              <button class="btn mini ghost" data-nav="home">Back</button>
+            </div>
+            <div class="stage-select-hero">
+              <img src="./assets/images/stage-map-preview.svg" alt="Stage select preview map" />
+              <div class="stage-select-copy">
+                <div class="eyebrow">Campaign Route</div>
+                <strong id="selectedStageTitle">Zone 1 • Neon Outpost</strong>
+                <p id="selectedStageDesc" class="muted">A warm-up zone with open lanes and lighter enemy pressure.</p>
+                <button id="playSelectedStageBtn" class="btn neon">Play Selected Stage</button>
+              </div>
+            </div>
+            <div id="stageSelectGrid" class="stage-select-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-settings" class="page" aria-label="Settings Page">
+        <div class="center-wrap wide">
+          <div class="glass-card settings-card">
+            <div class="card-header-row">
+              <h2>Settings</h2>
+              <button class="btn mini ghost" data-nav="home">Back</button>
+            </div>
+            <div class="settings-section-title">Audio & Display</div>
+            <div class="settings-grid">
+              <label class="toggle-card"><span>Music</span><input id="musicToggle" type="checkbox" checked /></label>
+              <label class="toggle-card"><span>Sound FX</span><input id="soundToggle" type="checkbox" checked /></label>
+              <label class="toggle-card"><span>High Contrast</span><input id="contrastToggle" type="checkbox" /></label>
+              <label class="toggle-card"><span>Accessibility</span><input id="accessibilityToggle" type="checkbox" /></label>
+              <label class="toggle-card"><span>Child Mode</span><input id="childModeToggle" type="checkbox" /></label>
+            </div>
+
+            <div class="settings-section-title">Items & Hotkeys</div>
+            <div class="hotkey-settings-grid" aria-label="Item and Hotkey Settings">
+              <div class="hotkey-card"><span class="hotkey-icon">＋</span><div><strong>Repair</strong><small>Keyboard Q / mobile item button</small></div><kbd>Q</kbd></div>
+              <div class="hotkey-card"><span class="hotkey-icon">🛡</span><div><strong>Shield</strong><small>Keyboard E / mobile item button</small></div><kbd>E</kbd></div>
+              <div class="hotkey-card"><span class="hotkey-icon">⚡</span><div><strong>Rapid</strong><small>Keyboard R / mobile item button</small></div><kbd>R</kbd></div>
+              <div class="hotkey-card"><span class="hotkey-icon">💣</span><div><strong>Bomb</strong><small>Keyboard F / mobile item button</small></div><kbd>F</kbd></div>
+            </div>
+
+            <div class="settings-section-title">Mobile Controls</div>
+            <div class="control-settings-grid" aria-label="Mobile Control Settings">
+              <label class="select-card">
+                <span>Control Style</span>
+                <select id="mobileControlModeSelect">
+                  <option value="joystick">Joystick</option>
+                  <option value="buttons">Arrow Buttons</option>
+                  <option value="hybrid">Joystick + Buttons</option>
+                </select>
+              </label>
+              <label class="toggle-card"><span>Always Show Fire Button</span><input id="alwaysFireToggle" type="checkbox" checked /></label>
+              <label class="toggle-card"><span>Vibration Feedback</span><input id="vibrationToggle" type="checkbox" checked /></label>
+            </div>
+            <div class="settings-note">Items can be triggered with Q / E / R / F. On mobile, switch between joystick, arrow buttons, or hybrid controls.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-profile" class="page" aria-label="Profile Page">
+        <div class="center-wrap wide">
+          <div class="glass-card profile-card">
+            <div class="card-header-row">
+              <h2>Profile</h2>
+              <button class="btn mini ghost" data-nav="home">Back</button>
+            </div>
+            <div class="profile-grid">
+              <div class="profile-block"><span>Pilot Name</span><strong id="profileName">Guest Pilot</strong></div>
+              <div class="profile-block"><span>Pilot Email</span><strong id="profileEmail">guest@local</strong></div>
+              <div class="profile-block"><span>Country</span><strong id="profileCountry">US</strong></div>
+              <div class="profile-block"><span>Account Type</span><strong id="profileType">Guest</strong></div>
+              <div class="profile-block"><span>Best Score</span><strong id="profileBest">0</strong></div>
+              <div class="profile-block"><span>Coins</span><strong id="profileCoins">0</strong></div>
+              <div class="profile-block"><span>Active Skin</span><strong id="profileSkin">Classic</strong></div>
+              <div class="profile-block"><span>Owned Skins</span><strong id="profileOwnedSkins">1</strong></div>
+            </div>
+            
+            <div class="account-center-grid">
+              <div class="account-panel glass-subpanel">
+                <div class="card-header-row">
+                  <h3>Account Center</h3>
+                  <span class="status-badge blue">Local Mock</span>
+                </div>
+                <p class="muted">Update your pilot name and access code for this device.</p>
+                <form id="accountUpdateForm" class="form-grid compact-form account-form">
+                  <label><span>Pilot Name</span><input id="accountPilotName" type="text" maxlength="24" placeholder="Your pilot name" /></label>
+                  <label><span>New Access Code</span><input id="accountNewPassword" type="password" minlength="6" placeholder="Optional, 6+ characters" /></label>
+                </form>
+                <button id="saveAccountBtn" class="btn neon">SAVE PROFILE</button>
+              </div>
+            </div>
+            <div class="score-history-box">
+              <div class="card-header-row">
+                <h3>Score History</h3>
+                <button id="clearScoresBtn" class="btn mini danger">Clear</button>
+              </div>
+              <div id="scoreHistoryList" class="history-list"></div>
+            </div>
+            <div class="v7-profile-grid">
+              <div class="score-history-box">
+                <div class="card-header-row">
+                  <h3>Daily Drop</h3>
+                  <span id="profileDailyBadge" class="status-badge blue">READY</span>
+                </div>
+                <p id="profileDailyText" class="muted">Daily rewards keep your arsenal moving.</p>
+                <button id="profileClaimDailyBtn" class="btn neon">CLAIM DROP</button>
+              </div>
+              <div class="score-history-box">
+                <div class="card-header-row">
+                  <h3>Achievements</h3>
+                  <span id="achievementProgressBadge" class="status-badge">0 / 0</span>
+                </div>
+                <div id="achievementList" class="achievement-list"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-shop" class="page" aria-label="Shop Page">
+        <div class="center-wrap wide">
+          <div class="glass-card shop-card">
+            <div class="card-header-row">
+              <h2>Armory</h2>
+              <div class="card-header-row compact-right">
+                <span class="status-badge blue shop-credit-badge"><span id="shopCoins">0</span></span>
+                <button class="btn mini ghost" data-nav="home">Back</button>
+              </div>
+            </div>
+            <p class="muted">Recharge Credits, unlock battle gear, and collect premium tank skins for stronger runs.</p>
+            <div class="shop-top-grid">
+              <div class="coin-pack-panel">
+                <div class="card-header-row"><h3>Credit Packs</h3><span class="muted">Choose your recharge pack</span></div>
+                <div id="coinPackGrid" class="coin-pack-grid"></div>
+              </div>
+              <div class="checkout-panel">
+                <div class="eyebrow">Checkout Preview</div>
+                <h3 id="selectedPackLabel">Field Supply</h3>
+                <div id="selectedPackValue" class="selected-pack-value">1200 Credits</div>
+                <p id="selectedPackHint" class="muted">Credits can be used for gear, bundles, and tank skins.</p>
+                <div class="payment-methods">
+                  <button type="button" class="method-card" data-pay-type="8004">Credit Card</button>
+                  <button type="button" class="method-card" data-pay-type="8003">Apple Pay</button>
+                  <button type="button" class="method-card" data-pay-type="8012">Google Pay</button>
+                </div>
+                <form id="paymentForm" class="form-grid compact-form">
+                  <label><span>First Name</span><input id="payFirstName" type="text" autocomplete="off" data-checkout-field="firstName" required /></label>
+                  <label><span>Last Name</span><input id="payLastName" type="text" autocomplete="off" data-checkout-field="lastName" required /></label>
+                  <label><span>Pilot Email</span><input id="payEmail" type="email" autocomplete="off" data-checkout-field="email" required /></label>
+                  <label><span>Phone</span><input id="payPhone" type="tel" placeholder="Phone number" autocomplete="off" data-checkout-field="phone" required /></label>
+                  <label><span>Country</span><input id="payCountry" type="text" value="US" autocomplete="off" data-checkout-field="country" required /></label>
+                </form>
+                <div class="action-grid two">
+                  <button id="createPaymentBtn" class="btn neon">Pay Now</button>
+                  <button id="checkPaymentBtn" class="btn ghost">Check Status</button>
+                </div>
+                <pre id="paymentResult" class="result-box">Checkout status will appear here.</pre>
+              </div>
+            </div>
+
+            <div class="shop-feature-row">
+              <div class="shop-feature-card">
+                <img src="./assets/images/hero-battle-scene.svg" alt="Battlefield visual" />
+                <div>
+                  <strong>Featured Armory</strong>
+                  <p class="muted">Upgrade your loadout with credits, gear, and elite tank skins.</p>
+                </div>
+              </div>
+              <div class="shop-feature-card">
+                <img src="./assets/images/boss-overlord-card.svg" alt="Boss Poster" />
+                <div>
+                  <strong>Boss Zone Rewards</strong>
+                  <p class="muted">Clear boss zones to earn bonus Credits and rare battlefield supplies.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="shop-split">
+              <div>
+                <div class="card-header-row"><h3>Battle Gear</h3><span class="muted">Use Credits from Credit Packs</span></div>
+                <div id="itemShopGrid" class="shop-grid"></div>
+                <div class="card-header-row shop-subhead"><h3>Commander Deals</h3><span class="muted">High-value gear bundles for tougher zones</span></div>
+                <div id="bundleShopGrid" class="bundle-grid"></div>
+              </div>
+              <div>
+                <div class="card-header-row"><h3>Elite Skins</h3><span class="muted">Unlock premium looks and attack effects</span></div>
+                <div id="skinShopGrid" class="shop-grid skin-grid"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-legal" class="page" aria-label="Legal Page">
+        <div class="center-wrap wide legal-wrap">
+          <div class="glass-card legal-card">
+            <div class="card-header-row"><h2>Privacy Policy</h2><button class="btn mini ghost" data-nav="home">Back</button></div>
+            <p>We use local account data to save gameplay progress, preferences, inventory, skins, and score history on this device.</p>
+            <p>Accessibility settings and child mode are provided to support safer, clearer gameplay experiences.</p>
+          </div>
+          <div class="glass-card legal-card">
+            <h2>Terms of Service</h2>
+            <p>Players may play as a guest or sign in with a local account. Optional Credit purchases may redirect to a secure third-party checkout provider.</p>
+            <p>Use of the project is at your own discretion. Scores, skins, and item inventory are stored locally unless child mode is enabled.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="cookieBanner" class="cookie-banner hidden" role="dialog" aria-live="polite">
+    <div>
+      <strong>Cookie Notice</strong>
+      <p>We use local storage for preferences, login state, skins, item inventory, and score history.</p>
+    </div>
+    <div class="action-grid two compact">
+      <button id="acceptCookiesBtn" class="btn neon">Accept</button>
+      <button id="declineCookiesBtn" class="btn ghost">Decline</button>
+    </div>
+  </div>
+
+
+
+  <div id="accountMenu" class="account-menu hidden" aria-live="polite">
+    <button id="accountMenuBtn" class="account-menu-btn" type="button">
+      <span class="account-avatar">P</span>
+      <span id="userBadge" class="account-label">Guest</span>
+      <span class="account-caret">▾</span>
+    </button>
+    <div class="account-dropdown">
+      <div class="account-dropdown-title">Pilot Account</div>
+      <div id="accountDropdownEmail" class="account-dropdown-email">Guest</div>
+      <button id="accountLoginAction" class="account-dropdown-action" type="button">Sign In</button>
+      <button id="accountLogoutAction" class="account-dropdown-action danger" type="button">Sign Out</button>
+    </div>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+
+
+  <script src="./js/api.js"></script>
+  <script src="./js/auth.js"></script>
+  <script src="./js/game.js"></script>
+  <script src="./js/ui.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
