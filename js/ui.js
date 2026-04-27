@@ -324,11 +324,17 @@ bindSettings() {
 
     setPaymentBusy(isBusy, message) {
       const payBtn = document.getElementById('createPaymentBtn');
+      const confirmBtn = document.getElementById('confirmPaymentModalBtn');
       const status = document.getElementById('paymentResult');
       if (payBtn) {
         payBtn.disabled = !!isBusy;
         payBtn.classList.toggle('is-loading', !!isBusy);
-        payBtn.textContent = isBusy ? 'Opening Checkout...' : 'Pay Now';
+        payBtn.textContent = isBusy ? 'Opening Checkout...' : 'Open Checkout';
+      }
+      if (confirmBtn) {
+        confirmBtn.disabled = !!isBusy;
+        confirmBtn.classList.toggle('is-loading', !!isBusy);
+        confirmBtn.textContent = isBusy ? 'Opening...' : 'Pay Now';
       }
       if (status && message) status.textContent = message;
     },
@@ -367,28 +373,79 @@ bindSettings() {
       }
     },
 
+    updatePaymentModalSummary() {
+      const pack = COIN_PACKS.find((entry) => entry.id === this.selectedCoinPackId) || COIN_PACKS[2];
+      const label = document.getElementById('modalPackLabel');
+      const value = document.getElementById('modalPackValue');
+      if (label) label.textContent = pack.title + ' · $' + pack.usd;
+      if (value) value.textContent = pack.totalCoins + ' Credits';
+    },
+
+    openPaymentModal() {
+      const modal = document.getElementById('paymentModal');
+      if (!modal) return;
+      this.syncCheckoutFields(true);
+      this.updatePaymentModalSummary();
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('payment-modal-open');
+      const first = document.getElementById('payFirstName');
+      if (first) setTimeout(() => first.focus(), 40);
+    },
+
+    closePaymentModal() {
+      const modal = document.getElementById('paymentModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('payment-modal-open');
+    },
+
     bindPaymentButtons() {
-      const methodCards = Array.from(document.querySelectorAll('.method-card'));
-      let selectedMethod = 'Credit Card';
-      let selectedPayType = 8004;
+      const methodCards = Array.from(document.querySelectorAll('#paymentModal .method-card'));
+      this.selectedPaymentMethod = 'Credit Card';
+      this.selectedPayType = 8004;
       methodCards.forEach((card, index) => {
         if (index === 0) card.classList.add('active');
         card.addEventListener('click', () => {
           methodCards.forEach((node) => node.classList.remove('active'));
           card.classList.add('active');
-          selectedMethod = card.textContent.trim();
-          selectedPayType = Number(card.dataset.payType || 8004);
+          this.selectedPaymentMethod = card.textContent.trim();
+          this.selectedPayType = Number(card.dataset.payType || 8004);
         });
       });
 
       const payBtn = document.getElementById('createPaymentBtn');
       if (payBtn) {
-        payBtn.addEventListener('click', async () => {
-          const pack = COIN_PACKS.find((entry) => entry.id === this.selectedCoinPackId) || COIN_PACKS[2];
-          try { await this.startSecureCheckout(pack, selectedMethod, selectedPayType); }
-          catch (error) { /* handled in startSecureCheckout */ }
+        payBtn.addEventListener('click', () => {
+          this.openPaymentModal();
         });
       }
+
+      const confirmBtn = document.getElementById('confirmPaymentModalBtn');
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', async () => {
+          const form = document.getElementById('paymentForm');
+          if (form && typeof form.reportValidity === 'function' && !form.reportValidity()) return;
+          const pack = COIN_PACKS.find((entry) => entry.id === this.selectedCoinPackId) || COIN_PACKS[2];
+          try {
+            await this.startSecureCheckout(pack, this.selectedPaymentMethod || 'Credit Card', this.selectedPayType || 8004);
+            this.closePaymentModal();
+            this.setPaymentBusy(false);
+          } catch (error) { /* handled in startSecureCheckout */ }
+        });
+      }
+
+      ['closePaymentModalBtn', 'cancelPaymentModalBtn'].forEach((id) => {
+        const btn = document.getElementById(id);
+        if (btn) btn.addEventListener('click', () => this.closePaymentModal());
+      });
+      document.querySelectorAll('[data-close-payment-modal]').forEach((node) => {
+        node.addEventListener('click', () => this.closePaymentModal());
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') this.closePaymentModal();
+      });
 
       const checkBtn = document.getElementById('checkPaymentBtn');
       if (checkBtn) {
@@ -818,6 +875,7 @@ bindMobileControlButtons() {
       if (label) label.textContent = pack.title;
       if (value) value.textContent = pack.totalCoins + ' Credits';
       if (hint) hint.textContent = pack.note + ' Spend these Credits on Battle Gear, bundles, and tank skins.';
+      this.updatePaymentModalSummary();
     },
 
     renderShop() {

@@ -506,23 +506,18 @@
                 <h3 id="selectedPackLabel">Field Supply</h3>
                 <div id="selectedPackValue" class="selected-pack-value">1200 Credits</div>
                 <p id="selectedPackHint" class="muted">Credits can be used for gear, bundles, and tank skins.</p>
-                <div class="payment-methods">
-                  <button type="button" class="method-card" data-pay-type="8004">Credit Card</button>
-                  <button type="button" class="method-card" data-pay-type="8003">Apple Pay</button>
-                  <button type="button" class="method-card" data-pay-type="8012">Google Pay</button>
+                <div class="checkout-launch-card">
+                  <div>
+                    <span class="checkout-lock">Secure Checkout</span>
+                    <strong>Review your pack, then continue to payment.</strong>
+                    <small>Card, Apple Pay, and Google Pay are available in the checkout window.</small>
+                  </div>
+                  <button id="createPaymentBtn" class="btn neon" type="button">Open Checkout</button>
                 </div>
-                <form id="paymentForm" class="form-grid compact-form">
-                  <label><span>First Name</span><input id="payFirstName" type="text" autocomplete="off" data-checkout-field="firstName" required /></label>
-                  <label><span>Last Name</span><input id="payLastName" type="text" autocomplete="off" data-checkout-field="lastName" required /></label>
-                  <label><span>Pilot Email</span><input id="payEmail" type="email" autocomplete="off" data-checkout-field="email" required /></label>
-                  <label><span>Phone</span><input id="payPhone" type="tel" placeholder="Phone number" autocomplete="off" data-checkout-field="phone" required /></label>
-                  <label><span>Country</span><input id="payCountry" type="text" value="US" autocomplete="off" data-checkout-field="country" required /></label>
-                </form>
-                <div class="action-grid two">
-                  <button id="createPaymentBtn" class="btn neon">Pay Now</button>
-                  <button id="checkPaymentBtn" class="btn ghost">Check Status</button>
+                <div class="action-grid one">
+                  <button id="checkPaymentBtn" class="btn ghost" type="button">Check Status</button>
                 </div>
-                <pre id="paymentResult" class="result-box">Checkout status will appear here.</pre>
+                <pre id="paymentResult" class="result-box">Choose a Credit Pack and open checkout to continue.</pre>
               </div>
             </div>
 
@@ -589,6 +584,34 @@
 
 
 
+
+  <div id="paymentModal" class="payment-modal hidden" aria-hidden="true">
+    <div class="payment-modal-backdrop" data-close-payment-modal></div>
+    <div class="secure-payment-card checkout-modal-card" role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle">
+      <button id="closePaymentModalBtn" class="payment-modal-close" type="button" aria-label="Close checkout">×</button>
+      <div class="checkout-modal-kicker">Secure Payment</div>
+      <h2 id="paymentModalTitle">Complete Checkout</h2>
+      <div class="secure-payment-summary">
+        <span id="modalPackLabel">Selected Pack</span>
+        <strong id="modalPackValue">0 Credits</strong>
+      </div>
+      <div class="payment-methods modal-payment-methods" aria-label="Payment Method">
+        <button type="button" class="method-card" data-pay-type="8004">Credit Card</button>
+        <button type="button" class="method-card" data-pay-type="8003">Apple Pay</button>
+        <button type="button" class="method-card" data-pay-type="8012">Google Pay</button>
+      </div>
+      <form id="paymentForm" class="form-grid compact-form modal-payment-form">
+        <label><span>First Name</span><input id="payFirstName" type="text" autocomplete="off" data-checkout-field="firstName" required /></label>
+        <label><span>Last Name</span><input id="payLastName" type="text" autocomplete="off" data-checkout-field="lastName" required /></label>
+        <label><span>Pilot Email</span><input id="payEmail" type="email" autocomplete="off" data-checkout-field="email" required /></label>
+        <label><span>Phone</span><input id="payPhone" type="tel" placeholder="Phone number" autocomplete="off" data-checkout-field="phone" required /></label>
+        <label><span>Country</span><input id="payCountry" type="text" value="US" autocomplete="off" data-checkout-field="country" required /></label>
+      </form>
+      <button id="confirmPaymentModalBtn" class="secure-pay-btn" type="button">Pay Now</button>
+      <button id="cancelPaymentModalBtn" class="secure-cancel-btn" type="button">Cancel</button>
+      <p class="secure-note">You will be redirected to the secure payment provider. Credits are granted after successful return.</p>
+    </div>
+  </div>
   <div id="accountMenu" class="account-menu hidden" aria-live="polite">
     <button id="accountMenuBtn" class="account-menu-btn" type="button">
       <span class="account-avatar">P</span>
