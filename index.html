@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Tank Battle: Neon Frontline</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -90,6 +90,13 @@
                 <button id="refreshLeaderboardBtn" class="btn mini ghost">Refresh</button>
               </div>
               <div id="leaderboardList" class="leaderboard-list"></div>
+              <div class="leaderboard-live-meta">
+                <span id="leaderboardLiveMeta">LIVE • updates every 10s</span>
+              </div>
+              <div class="leaderboard-rules">
+                <strong>Score Rules</strong>
+                <p>Enemy KO +100 · Heavy hit bonus +16 · Boss KO gives bonus score · EMP clears count as KOs. Your best run is ranked by Pilot Name first, then email.</p>
+              </div>
             </div>
 
             <div class="glass-card boss-preview-card">
@@ -124,12 +131,44 @@
 
       <section id="page-auth" class="page" aria-label="Account Page">
         <div class="center-wrap narrow">
-          <div class="glass-card auth-card">
+          <div class="glass-card auth-card upgraded-auth-card">
             <div class="card-header-row">
-              <h2>Create Pilot ID</h2>
+              <div>
+                <div class="eyebrow">Pilot Access</div>
+                <h2 id="authModeTitle">Create Pilot ID</h2>
+              </div>
               <button class="btn mini ghost" data-nav="home">Back</button>
             </div>
+            <p id="authModeHint" class="muted auth-mode-hint">Create a new pilot profile. Your progress, Credits, skins, achievements, and stage stars will be saved under this email.</p>
+
+            <div class="auth-mode-tabs" role="tablist" aria-label="Account mode">
+              <button id="authRegisterTab" type="button" class="auth-mode-tab active">Create Account</button>
+              <button id="authLoginTab" type="button" class="auth-mode-tab">Sign In</button>
+              <button id="authGuestTab" type="button" class="auth-mode-tab">Guest Run</button>
+            </div>
+
             <form id="loginForm" class="form-stack">
+              <div id="registerExtraFields" class="register-extra-fields">
+                <div class="form-grid">
+                  <label>
+                    <span>Pilot Name</span>
+                    <input id="pilotNameInput" type="text" placeholder="Your callsign" maxlength="24" />
+                  </label>
+                  <label>
+                    <span>Country</span>
+                    <input id="pilotCountryInput" type="text" placeholder="US" maxlength="32" value="US" />
+                  </label>
+                  <label>
+                    <span>First Name</span>
+                    <input id="pilotFirstNameInput" type="text" placeholder="First name" maxlength="32" />
+                  </label>
+                  <label>
+                    <span>Last Name</span>
+                    <input id="pilotLastNameInput" type="text" placeholder="Last name" maxlength="32" />
+                  </label>
+                </div>
+              </div>
+
               <label>
                 <span>Pilot Email</span>
                 <input id="loginEmail" type="email" placeholder="you@example.com" required />
@@ -138,16 +177,26 @@
                 <span>Access Code</span>
                 <input id="loginPassword" type="password" placeholder="6+ characters" required minlength="6" />
               </label>
-              <div class="action-grid two">
-                <button type="submit" class="btn neon">Create Account</button>
-                <button id="guestLoginBtn" type="button" class="btn secondary">Guest Run</button>
+              <label id="confirmPasswordWrap">
+                <span>Confirm Access Code</span>
+                <input id="loginConfirmPassword" type="password" placeholder="Repeat access code" minlength="6" />
+              </label>
+
+              <div id="authMessage" class="auth-message hidden" role="status"></div>
+
+              <div class="action-grid two auth-main-actions">
+                <button id="createAccountBtn" type="submit" class="btn neon" data-auth-action="register">Create Account</button>
+                <button id="signInBtn" type="button" class="btn secondary">Sign In</button>
               </div>
             </form>
-            <!-- <div class="divider">or continue with</div> -->
-            <!-- <div class="action-grid two">
-              <button id="googleLoginBtn" class="btn social">Google</button>
-              <button id="appleLoginBtn" class="btn social">Apple</button>
-            </div> -->
+
+            <div class="guest-access-card">
+              <div>
+                <strong>Try as Guest</strong>
+                <p>Guest mode is limited to Zone 1. Create a Pilot ID to save progress and unlock the full campaign.</p>
+              </div>
+              <button id="guestLoginBtn" type="button" class="btn ghost">Guest Run</button>
+            </div>
           </div>
         </div>
       </section>
@@ -210,6 +259,7 @@
 
           <div class="glass-card canvas-wrap" id="canvasWrap">
             <canvas id="gameCanvas" width="1040" height="700" aria-label="Tank Battle Game Canvas"></canvas>
+            <button id="mobileLobbyFloatBtn" class="mobile-lobby-float" aria-label="Back to Lobby">HQ</button>
             <div class="mobile-hud" aria-label="Mobile Status Bar">
               <div class="mobile-hud-chip"><span>HP</span><strong id="hudMobileHp">100</strong></div>
               <div class="mobile-hud-chip"><span>Score</span><strong id="hudMobileScore">0</strong></div>
@@ -217,7 +267,7 @@
               <div class="mobile-hud-chip"><span>Stage</span><strong id="hudMobileStage">1</strong></div>
               <button id="mobileNewGameBtn" class="mobile-mini-btn" aria-label="Restart">NEW</button>
               <button id="mobileFullscreenBtn" class="mobile-mini-btn highlight" aria-label="Enter Fullscreen">FULL</button>
-              <button id="mobileLobbyBtn" class="mobile-mini-btn lobby" data-nav="home" aria-label="Back to Lobby">LOBBY</button>
+              <button id="mobileLobbyBtn" class="mobile-mini-btn lobby" data-nav="home" aria-label="Back to Lobby">HQ</button>
             </div>
 
             <div class="touch-controls" aria-label="Mobile Touch Controls">
@@ -554,19 +604,51 @@
       </section>
 
       <section id="page-legal" class="page" aria-label="Legal Page">
-        <div class="center-wrap wide legal-wrap">
-          <div class="glass-card legal-card">
-            <div class="card-header-row"><h2>Privacy Policy</h2><button class="btn mini ghost" data-nav="home">Back</button></div>
-            <p>We use local account data to save gameplay progress, preferences, inventory, skins, and score history on this device.</p>
-            <p>Accessibility settings and child mode are provided to support safer, clearer gameplay experiences.</p>
-          </div>
-          <div class="glass-card legal-card">
-            <h2>Terms of Service</h2>
-            <p>Players may play as a guest or sign in with a local account. Optional Credit purchases may redirect to a secure third-party checkout provider.</p>
-            <p>Use of the project is at your own discretion. Scores, skins, and item inventory are stored locally unless child mode is enabled.</p>
-          </div>
+      <div class="page-shell legal-shell">
+        <div class="section-heading">
+          <span class="eyebrow">PLAYER TERMS</span>
+          <h2>Legal Center</h2>
+          <p class="muted">Clear rules for fair play, in-game Credits, privacy, and account safety.</p>
         </div>
-      </section>
+
+        <div class="legal-grid">
+          <article class="glass-card legal-card">
+            <h3>Launch Policy</h3>
+            <p>Tank Battle is an arcade combat game built for fair competitive play. Your progress, Credits, skins, items, achievements, and leaderboard records are saved to the active Pilot account on this browser.</p>
+            <p>Do not exploit bugs, modify game files for unfair score gains, automate gameplay, or bypass payment and reward systems.</p>
+          </article>
+
+          <article class="glass-card legal-card">
+            <h3>Payments & Credits</h3>
+            <p>Credits are digital in-game currency used to unlock Coin Packs, Battle Gear, weapon supplies, bundles, and cosmetic tank skins. Credits have no cash value and cannot be transferred or exchanged for real money.</p>
+            <p>Payments are processed through a secure third-party checkout. Credits are delivered only after a successful payment return is verified for the active Pilot account.</p>
+          </article>
+
+          <article class="glass-card legal-card">
+            <h3>Fair Play & Rankings</h3>
+            <p>Leaderboard scores are based on your best verified run. Score comes from enemy eliminations, Boss defeats, stage completion, survival efficiency, and clean mission performance.</p>
+            <p>If a score appears to be generated by tampering, automation, or payment abuse, it may be removed from the ranking list.</p>
+          </article>
+
+          <article class="glass-card legal-card">
+            <h3>Privacy & Account Data</h3>
+            <p>Registration information such as Pilot Email, Pilot Name, Country, and game progress is stored locally in the browser. Do not use sensitive personal passwords for this local game account.</p>
+            <p>You can update Pilot Name and Access Code in Profile. Logging out does not delete your saved progress.</p>
+          </article>
+
+          <article class="glass-card legal-card">
+            <h3>Guest Mode</h3>
+            <p>Guest Mode allows limited access to the first zone. To save long-term progress and unlock the full campaign, create a Pilot account or sign in with an existing Pilot Email.</p>
+          </article>
+
+          <article class="glass-card legal-card">
+            <h3>Cookie Notice</h3>
+            <p>This game uses local browser storage to remember settings, account progress, purchases, and leaderboard records. Clearing browser storage may remove local progress.</p>
+          </article>
+        </div>
+      </div>
+
+    </section>
     </main>
   </div>
 
@@ -632,5 +714,6 @@
   <script src="./js/game.js"></script>
   <script src="./js/ui.js"></script>
   <script src="./js/app.js"></script>
+  <div id="achievementToastStack" class="achievement-toast-stack"></div>
 </body>
 </html>

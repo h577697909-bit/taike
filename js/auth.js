@@ -155,6 +155,34 @@
       const user = this.getCurrentUser();
       return !user || user.guest === true || String(user.provider || '').toLowerCase() === 'guest';
     },
+    emailExists(email) {
+      const normalizedEmail = safeEmail(email);
+      return !!getProfile(normalizedEmail);
+    },
+    register(email, password, extras) {
+      const normalizedEmail = safeEmail(email);
+      const normalizedPassword = String(password || '').trim();
+      if (!normalizedEmail || !normalizedPassword || normalizedPassword.length < 6) throw new Error('Enter a valid email and a password with at least 6 characters.');
+      if (normalizedEmail === TEST_ACCOUNT_EMAIL) throw new Error('This Pilot ID is reserved. Please sign in.');
+      if (getProfile(normalizedEmail)) throw new Error('This email is already registered. Please sign in.');
+      const extra = extras && typeof extras === 'object' ? extras : {};
+      const profile = {
+        email: normalizedEmail,
+        name: String(extra.name || '').trim(),
+        firstName: String(extra.firstName || '').trim(),
+        lastName: String(extra.lastName || '').trim(),
+        country: String(extra.country || 'US').trim() || 'US',
+        provider: 'Email',
+        guest: false,
+        created_at: new Date().toISOString(),
+        passwordHash: normalizedPassword
+      };
+      createFreshAccountData(normalizedEmail, profile);
+      const user = Object.assign({}, getProfile(normalizedEmail) || profile, { guest: false, provider: 'Email', logged_in_at: new Date().toISOString(), devTest: false });
+      saveProfile(user);
+      saveUser(user);
+      return user;
+    },
     login(email, password) {
       const normalizedEmail = safeEmail(email);
       const normalizedPassword = String(password || '').trim();
@@ -208,7 +236,7 @@
     saveScore(score) {
       if (childModeEnabled()) return;
       const user = this.getCurrentUser();
-      const entry = { email: user.email, score: Number(score || 0), country: user.country || 'US', time: new Date().toLocaleString() };
+      const entry = { email: user.email, name: (user.name || ''), score: Number(score || 0), country: user.country || 'US', time: new Date().toLocaleString() };
       const accountScores = scoreHistoryFor(user.email);
       accountScores.unshift(entry);
       writeScoreHistoryFor(user.email, accountScores);
@@ -227,6 +255,35 @@
       const list = scoreHistoryFor(email);
       if (!list.length) return 0;
       return Math.max.apply(null, list.map((entry) => Number(entry.score || 0)));
+    },
+    getDisplayNameByEmail(email) {
+      const profile = getProfile(email);
+      if (profile && profile.name && String(profile.name).trim()) return String(profile.name).trim();
+      return safeEmail(email || 'Pilot');
+    },
+    getLeaderboardRows() {
+      const liveTick = Math.floor(Date.now() / 10000);
+      const seeded = [
+        { email: 'novastrike@arena.local', name: 'NovaStrike', score: 98500 + (liveTick % 13) * 35, seeded: true },
+        { email: 'steelpulse@arena.local', name: 'SteelPulse', score: 87200 + (liveTick % 11) * 28, seeded: true },
+        { email: 'ghostarmor@arena.local', name: 'GhostArmor', score: 79450 + (liveTick % 9) * 24, seeded: true },
+        { email: 'deltacore@arena.local', name: 'DeltaCore', score: 73120 + (liveTick % 8) * 21, seeded: true },
+        { email: 'ironecho@arena.local', name: 'IronEcho', score: 68810 + (liveTick % 7) * 18, seeded: true },
+        { email: 'vortexunit@arena.local', name: 'VortexUnit', score: 64100 + (liveTick % 6) * 15, seeded: true }
+      ];
+      const bestByEmail = {};
+      this.getScoreHistory().forEach((entry) => {
+        const email = safeEmail(entry.email || 'guest@local');
+        const score = Number(entry.score || 0);
+        if (!bestByEmail[email] || score > bestByEmail[email].score) {
+          bestByEmail[email] = Object.assign({}, entry, { email, score });
+        }
+      });
+      const rows = Object.keys(bestByEmail).map((email) => {
+        const row = bestByEmail[email];
+        return Object.assign({}, row, { name: this.getDisplayNameByEmail(email) });
+      });
+      return seeded.concat(rows).sort((a, b) => Number(b.score || 0) - Number(a.score || 0)).slice(0, 10);
     },
     getInventory() {
       if (childModeEnabled()) return clone(sessionInventory);

@@ -628,87 +628,71 @@ const LEVELS = [
       if (enemy.isBoss) {
         enemy.chargeTimer = Math.max(0, (enemy.chargeTimer || 0) - deltaSeconds);
         enemy.repathTimer = Math.max(0, enemy.repathTimer || 0);
-        if (enemy.aiTurnTimer <= 0 || enemy.repathTimer <= 0) {
-          const targetX = this.player.x + this.player.width / 2 - enemy.width / 2;
-          const targetY = this.player.y + this.player.height / 2 - enemy.height / 2;
-          enemy.repathTargetX = clamp(targetX, 0, this.canvas.width - enemy.width);
-          enemy.repathTargetY = clamp(targetY, MAP_OFFSET_Y, this.canvas.height - enemy.height);
+        const bossLanes = [
+          { x: this.canvas.width * 0.18, y: MAP_OFFSET_Y + TILE * 2.0 },
+          { x: this.canvas.width * 0.50, y: MAP_OFFSET_Y + TILE * 2.7 },
+          { x: this.canvas.width * 0.78, y: MAP_OFFSET_Y + TILE * 3.8 },
+          { x: this.canvas.width * 0.28, y: MAP_OFFSET_Y + TILE * 6.2 },
+          { x: this.canvas.width * 0.66, y: MAP_OFFSET_Y + TILE * 7.1 }
+        ];
+        const nearTarget = Math.hypot((enemy.repathTargetX || enemy.x) - enemy.x, (enemy.repathTargetY || enemy.y) - enemy.y) < 28;
+        if (enemy.aiTurnTimer <= 0 || enemy.repathTimer <= 0 || nearTarget || enemy.repathTargetX === undefined) {
+          const lane = bossLanes[Math.floor(Math.random() * bossLanes.length)];
+          enemy.repathTargetX = clamp(lane.x - enemy.width / 2 + rand(-TILE, TILE), 0, this.canvas.width - enemy.width);
+          enemy.repathTargetY = clamp(lane.y - enemy.height / 2 + rand(-TILE * 0.6, TILE * 0.6), MAP_OFFSET_Y + 8, this.base.y - enemy.height - TILE * 0.6);
           const dx = enemy.repathTargetX - enemy.x;
           const dy = enemy.repathTargetY - enemy.y;
           enemy.direction = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-          enemy.aiTurnTimer = rand(0.16, 0.32);
-          enemy.repathTimer = rand(0.26, 0.42);
+          enemy.aiTurnTimer = rand(0.42, 0.86);
+          enemy.repathTimer = rand(0.9, 1.6);
         }
-        const dx = (enemy.repathTargetX ?? this.player.x) - enemy.x;
-        const dy = (enemy.repathTargetY ?? this.player.y) - enemy.y;
-        const chase = Math.hypot(dx, dy) || 1;
-        const baseSpeed = enemy.speed * (enemy.chargeTimer <= 0 ? 1.42 : 1.0);
-        const moveX = (dx / chase) * baseSpeed;
-        const moveY = (dy / chase) * baseSpeed;
+        const dx = enemy.repathTargetX - enemy.x;
+        const dy = enemy.repathTargetY - enemy.y;
+        const travel = Math.hypot(dx, dy) || 1;
+        const baseSpeed = enemy.speed * (enemy.chargeTimer <= 0 ? 1.10 : 0.88);
+        const moveX = (dx / travel) * baseSpeed;
+        const moveY = (dy / travel) * baseSpeed;
         const moved = this.moveEntity(enemy, moveX, moveY);
         if (!moved) {
           enemy.stuckTimer += deltaSeconds;
           enemy.aiTurnTimer = 0;
           enemy.repathTimer = 0;
-          if (enemy.stuckTimer > 0.08) this.clearNearbyBricksForBoss(enemy);
-          let freed = this.attemptEntityUnstick(enemy, this.player.x, this.player.y);
-          if (!freed && enemy.stuckTimer > 0.14) {
-            const flankY = clamp(this.player.y - enemy.height * 0.4, MAP_OFFSET_Y + 18, this.base.y - enemy.height - TILE * 0.25);
-            const flankX = clamp(this.player.x + (this.player.x < enemy.x ? TILE * 1.1 : -TILE * 1.1), 0, this.canvas.width - enemy.width);
-            const nearTarget = this.findNearestFreeSpot(enemy, flankX, flankY);
-            if (nearTarget) {
-              enemy.x = nearTarget.x;
-              enemy.y = nearTarget.y;
-              freed = true;
-            }
+          if (enemy.stuckTimer > 0.12) this.clearNearbyBricksForBoss(enemy);
+          let freed = this.attemptEntityUnstick(enemy, enemy.repathTargetX, enemy.repathTargetY);
+          if (!freed && enemy.stuckTimer > 0.22) {
+            const lane = bossLanes[Math.floor(Math.random() * bossLanes.length)];
+            const spot = this.findNearestFreeSpot(enemy, lane.x - enemy.width / 2, lane.y - enemy.height / 2);
+            if (spot) { enemy.x = spot.x; enemy.y = spot.y; freed = true; }
           }
-          if (!freed && enemy.stuckTimer > 0.2) {
-            const emergency = this.findNearestFreeSpot(enemy, this.canvas.width / 2 - enemy.width / 2, MAP_OFFSET_Y + TILE * 3);
-            if (emergency) {
-              enemy.x = emergency.x;
-              enemy.y = emergency.y;
-              freed = true;
-            }
-          }
-          if (freed) {
-            enemy.direction = Math.abs(this.player.x - enemy.x) > Math.abs(this.player.y - enemy.y) ? (this.player.x > enemy.x ? 'right' : 'left') : (this.player.y > enemy.y ? 'down' : 'up');
-            enemy.stuckTimer = 0;
-          }
+          if (freed) enemy.stuckTimer = 0;
         } else {
           enemy.stuckTimer = 0;
         }
         if (enemy.chargeTimer <= 0) {
           this.addMuzzleFlash(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.glow || enemy.color);
-          enemy.chargeTimer = rand(1.9, 3.2);
+          enemy.chargeTimer = rand(2.3, 3.8);
         }
         enemy.treads += baseSpeed * deltaSeconds * 2.5;
       } else {
-        const dx = this.player.x - enemy.x; const dy = this.player.y - enemy.y; const distance = Math.hypot(dx, dy) || 1; const canSee = this.hasLineOfSight(enemy, this.player);
-        if (enemy.aiTurnTimer <= 0) {
-          if (canSee && distance < 340) {
-            if (distance < 150 && Math.random() > enemy.attackBias) enemy.direction = Math.abs(dx) > Math.abs(dy) ? (dy > 0 ? 'up' : 'down') : (dx > 0 ? 'left' : 'right');
-            else enemy.direction = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-          } else {
-            const directions = ['up', 'down', 'left', 'right'];
-            enemy.direction = directions[Math.floor(Math.random() * directions.length)];
-          }
-          enemy.aiTurnTimer = canSee ? rand(0.22, 0.65) : rand(0.55, 1.1);
+        if (enemy.aiTurnTimer <= 0 || !enemy.direction) {
+          const directions = ['up', 'down', 'left', 'right'];
+          enemy.direction = directions[Math.floor(Math.random() * directions.length)];
+          enemy.aiTurnTimer = rand(0.8, 1.65);
         }
-        const speed = enemy.speed * (enemy.kind === 'scout' ? 1.15 : enemy.kind === 'elite' ? 0.92 : 1);
+        const speed = enemy.speed * (enemy.kind === 'scout' ? 1.08 : enemy.kind === 'elite' ? 0.9 : 0.96);
         let moveX = 0, moveY = 0;
-        if (canSee && distance < 260) {
-          const strafe = enemy.strafeDir * speed * 0.85;
-          moveX = Math.abs(dx) > Math.abs(dy) ? 0 : strafe;
-          moveY = Math.abs(dx) > Math.abs(dy) ? strafe : 0;
-        } else {
-          if (enemy.direction === 'up') moveY = -speed; if (enemy.direction === 'down') moveY = speed; if (enemy.direction === 'left') moveX = -speed; if (enemy.direction === 'right') moveX = speed;
-        }
+        if (enemy.direction === 'up') moveY = -speed;
+        if (enemy.direction === 'down') moveY = speed;
+        if (enemy.direction === 'left') moveX = -speed;
+        if (enemy.direction === 'right') moveX = speed;
         const moved = this.moveEntity(enemy, moveX, moveY);
         if (!moved) {
           enemy.stuckTimer += deltaSeconds;
-          enemy.aiTurnTimer = 0;
-          if (enemy.stuckTimer > 0.16) {
-            this.attemptEntityUnstick(enemy, this.player.x, this.player.y);
+          const directions = ['up', 'down', 'left', 'right'].filter((dir) => dir !== enemy.direction);
+          enemy.direction = directions[Math.floor(Math.random() * directions.length)];
+          enemy.aiTurnTimer = rand(0.35, 0.8);
+          if (enemy.stuckTimer > 0.18) {
+            this.attemptEntityUnstick(enemy, enemy.x + rand(-TILE * 2, TILE * 2), enemy.y + rand(-TILE * 2, TILE * 2));
             enemy.stuckTimer = 0;
           }
         } else {

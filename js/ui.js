@@ -47,6 +47,7 @@
     stageStorageKey: 'tankGameSelectedStage',
     selectedCoinPackId: 'arsenal',
     quickPurchaseItemKey: '',
+    authMode: 'register',
 
     init() {
       this.pages = {
@@ -87,8 +88,8 @@
       document.querySelectorAll('[data-nav]').forEach((button) => {
         button.addEventListener('click', () => this.showPage(button.dataset.nav));
       });
-      document.getElementById('startGameBtn').addEventListener('click', () => this.startGameFromSelection());
-      document.getElementById('playSelectedStageBtn').addEventListener('click', () => this.startGameFromSelection());
+      document.getElementById('startGameBtn')?.addEventListener('click', () => this.startGameFromSelection());
+      document.getElementById('playSelectedStageBtn')?.addEventListener('click', () => this.startGameFromSelection());
     },
 
     showPage(name) {
@@ -103,8 +104,9 @@
 
     startGameFromSelection() {
       if (window.TankGame.auth.isGuest && window.TankGame.auth.isGuest() && this.selectedStage > 1) {
-        this.showGuestStageGate();
-        return;
+        this.selectedStage = 1;
+        this.saveSelectedStage && this.saveSelectedStage(1);
+        this.showToast('Guest Run is limited to Zone 1. Sign in to unlock more zones.');
       }
       this.showPage('game');
       window.TankGame.game.start(this.selectedStage);
@@ -118,11 +120,11 @@ bindSettings() {
   const contrast = document.getElementById('contrastToggle');
   const accessibility = document.getElementById('accessibilityToggle');
   const childMode = document.getElementById('childModeToggle');
-  music.addEventListener('change', () => { document.body.dataset.music = music.checked ? 'true' : 'false'; });
-  sound.addEventListener('change', () => { document.body.dataset.sound = sound.checked ? 'true' : 'false'; });
-  contrast.addEventListener('change', () => document.body.classList.toggle('high-contrast', contrast.checked));
-  accessibility.addEventListener('change', () => document.body.classList.toggle('accessibility-mode', accessibility.checked));
-  childMode.addEventListener('change', () => {
+  if (music) music.addEventListener('change', () => { document.body.dataset.music = music.checked ? 'true' : 'false'; });
+  if (sound) sound.addEventListener('change', () => { document.body.dataset.sound = sound.checked ? 'true' : 'false'; });
+  if (contrast) contrast.addEventListener('change', () => document.body.classList.toggle('high-contrast', contrast.checked));
+  if (accessibility) accessibility.addEventListener('change', () => document.body.classList.toggle('accessibility-mode', accessibility.checked));
+  if (childMode) childMode.addEventListener('change', () => {
     document.body.dataset.childMode = childMode.checked ? 'true' : 'false';
     this.refreshAll();
   });
@@ -152,6 +154,38 @@ bindSettings() {
   });
 },
 
+    setAuthMode(mode) {
+      this.authMode = mode === 'login' ? 'login' : 'register';
+      const register = this.authMode === 'register';
+      const title = document.getElementById('authModeTitle');
+      const hint = document.getElementById('authModeHint');
+      const extra = document.getElementById('registerExtraFields');
+      const confirmWrap = document.getElementById('confirmPasswordWrap');
+      const createBtn = document.getElementById('createAccountBtn');
+      const signInBtn = document.getElementById('signInBtn');
+      const registerTab = document.getElementById('authRegisterTab');
+      const loginTab = document.getElementById('authLoginTab');
+      const guestTab = document.getElementById('authGuestTab');
+      if (title) title.textContent = register ? 'Create Pilot ID' : 'Sign In';
+      if (hint) hint.textContent = register ? 'Register a new pilot profile. Progress, Credits, skins, achievements, and stage stars will be saved under this email.' : 'Sign in with an existing Pilot Email and Access Code to continue your saved progress.';
+      if (extra) extra.classList.toggle('hidden', !register);
+      if (confirmWrap) confirmWrap.classList.toggle('hidden', !register);
+      if (createBtn) createBtn.style.display = register ? '' : 'none';
+      if (signInBtn) signInBtn.style.display = register ? 'none' : '';
+      if (registerTab) registerTab.classList.toggle('active', register);
+      if (loginTab) loginTab.classList.toggle('active', !register);
+      if (guestTab) guestTab.classList.remove('active');
+      this.setAuthMessage('', false);
+    },
+
+    setAuthMessage(message, isError) {
+      const box = document.getElementById('authMessage');
+      if (!box) return;
+      box.textContent = message || '';
+      box.classList.toggle('hidden', !message);
+      box.classList.toggle('error', !!isError);
+    },
+
     bindAuthButtons() {
       const safeOn = (id, eventName, handler) => {
         const el = document.getElementById(id);
@@ -159,14 +193,14 @@ bindSettings() {
         el.dataset.bound = 'true';
         el.addEventListener(eventName, handler);
       };
-      safeOn('openLoginBtn', 'click', () => this.showPage('auth'));
+      safeOn('openLoginBtn', 'click', () => { this.setAuthMode('register'); this.showPage('auth'); });
       safeOn('logoutBtn', 'click', () => {
         window.TankGame.auth.logout();
         this.handleAccountChanged();
         this.refreshAll();
         this.showToast('Signed out');
       });
-      safeOn('accountLoginAction', 'click', () => this.showPage('auth'));
+      safeOn('accountLoginAction', 'click', () => { this.setAuthMode('login'); this.showPage('auth'); });
       safeOn('accountLogoutAction', 'click', () => {
         window.TankGame.auth.logout();
         this.handleAccountChanged();
@@ -178,28 +212,59 @@ bindSettings() {
         const menu = document.getElementById('accountMenu');
         if (menu) menu.classList.toggle('open');
       });
-      safeOn('loginForm', 'submit', (event) => {
-        event.preventDefault();
+      safeOn('authRegisterTab', 'click', () => this.setAuthMode('register'));
+      safeOn('authLoginTab', 'click', () => this.setAuthMode('login'));
+      safeOn('authGuestTab', 'click', () => {
+        const tab = document.getElementById('authGuestTab');
+        if (tab) tab.classList.add('active');
+        this.startGuestRun();
+      });
+
+      const completeAuth = (mode) => {
         const emailEl = document.getElementById('loginEmail');
         const passwordEl = document.getElementById('loginPassword');
+        const confirmEl = document.getElementById('loginConfirmPassword');
+        const email = emailEl ? emailEl.value : '';
+        const password = passwordEl ? passwordEl.value : '';
         try {
-          window.TankGame.auth.login(emailEl ? emailEl.value : '', passwordEl ? passwordEl.value : '');
+          if (mode === 'register') {
+            if (window.TankGame.auth.emailExists && window.TankGame.auth.emailExists(email)) {
+              throw new Error('This email is already registered. Please sign in.');
+            }
+            if (confirmEl && confirmEl.value && confirmEl.value !== password) {
+              throw new Error('Access Code confirmation does not match.');
+            }
+            const extras = {
+              name: (document.getElementById('pilotNameInput') || {}).value || '',
+              firstName: (document.getElementById('pilotFirstNameInput') || {}).value || '',
+              lastName: (document.getElementById('pilotLastNameInput') || {}).value || '',
+              country: (document.getElementById('pilotCountryInput') || {}).value || 'US'
+            };
+            window.TankGame.auth.register(email, password, extras);
+            this.setAuthMessage('Pilot ID created. Your progress will be saved to this account.', false);
+            this.showToast('Pilot ID created');
+          } else {
+            window.TankGame.auth.login(email, password);
+            this.setAuthMessage('Signed in. Welcome back, pilot.', false);
+            this.showToast('Signed in');
+          }
           this.handleAccountChanged();
           this.refreshAll();
-          this.showToast('Pilot ID created');
+          this.selectedStage = 1;
           this.startGameFromSelection();
         } catch (error) {
-          this.showToast(error.message);
+          const msg = error.message || 'Account action failed';
+          this.setAuthMessage(msg, true);
+          this.showToast(msg);
         }
+      };
+      safeOn('loginForm', 'submit', (event) => {
+        event.preventDefault();
+        completeAuth(this.authMode || 'register');
       });
-      safeOn('guestLoginBtn', 'click', () => {
-        window.TankGame.auth.loginGuest();
-        this.handleAccountChanged();
-        this.refreshAll();
-        this.showToast('Guest Run started');
-        this.selectedStage = 1;
-        this.startGameFromSelection();
-      });
+      safeOn('signInBtn', 'click', () => completeAuth('login'));
+      safeOn('createAccountBtn', 'click', () => { this.authMode = 'register'; });
+      safeOn('guestLoginBtn', 'click', () => this.startGuestRun());
       safeOn('googleLoginBtn', 'click', () => {
         window.TankGame.auth.loginWithProvider('Google');
         this.handleAccountChanged();
@@ -214,6 +279,16 @@ bindSettings() {
         this.showPage('home');
         this.showToast('Apple pilot ready');
       });
+      this.setAuthMode('register');
+    },
+
+    startGuestRun() {
+      window.TankGame.auth.loginGuest();
+      this.handleAccountChanged();
+      this.refreshAll();
+      this.showToast('Guest Run started');
+      this.selectedStage = 1;
+      this.startGameFromSelection();
     },
 
     bindCheckoutProfileFields() {
@@ -228,11 +303,27 @@ bindSettings() {
     },
 
     bindGameButtons() {
-      document.getElementById('newGameBtn').addEventListener('click', () => this.startGameFromSelection());
-      document.getElementById('mobileNewGameBtn').addEventListener('click', () => this.startGameFromSelection());
-      document.getElementById('pauseGameBtn').addEventListener('click', () => window.TankGame.game.pause());
-      document.getElementById('resumeGameBtn').addEventListener('click', () => window.TankGame.game.resume());
-      document.getElementById('mobilePauseBtn').addEventListener('click', () => {
+      document.getElementById('newGameBtn')?.addEventListener('click', () => this.startGameFromSelection());
+      document.getElementById('mobileNewGameBtn')?.addEventListener('click', () => this.startGameFromSelection());
+      const mobileLobby = document.getElementById('mobileLobbyBtn');
+      if (mobileLobby && mobileLobby.dataset.lobbyBound !== 'true') {
+        mobileLobby.dataset.lobbyBound = 'true';
+        mobileLobby.addEventListener('click', () => {
+          try { if (window.TankGame.game.state === 'playing') window.TankGame.game.pause(); } catch (error) {}
+          this.showPage('home');
+        });
+      }
+      const mobileLobbyFloat = document.getElementById('mobileLobbyFloatBtn');
+      if (mobileLobbyFloat && mobileLobbyFloat.dataset.lobbyBound !== 'true') {
+        mobileLobbyFloat.dataset.lobbyBound = 'true';
+        mobileLobbyFloat.addEventListener('click', () => {
+          try { if (window.TankGame.game.state === 'playing') window.TankGame.game.pause(); } catch (error) {}
+          this.showPage('home');
+        });
+      }
+      document.getElementById('pauseGameBtn')?.addEventListener('click', () => window.TankGame.game.pause());
+      document.getElementById('resumeGameBtn')?.addEventListener('click', () => window.TankGame.game.resume());
+      document.getElementById('mobilePauseBtn')?.addEventListener('click', () => {
         if (window.TankGame.game.state === 'playing') window.TankGame.game.pause();
         else if (window.TankGame.game.state === 'paused') window.TankGame.game.resume();
       });
@@ -549,26 +640,52 @@ bindMobileControlButtons() {
           this.closeQuickPurchase();
           this.showToast('Purchased ' + item.title);
         } catch (error) {
-          this.showToast(error.message);
+          if (String(error.message || '').toLowerCase().includes('credit') || String(error.message || '').toLowerCase().includes('coin') || String(error.message || '').toLowerCase().includes('not enough')) {
+            this.goToCreditPacks('Not enough Credits. Recharge to restock ' + item.title + '.');
+          } else {
+            this.showToast(error.message);
+          }
         }
       });
+    },
+
+    isMobileViewport() {
+      return window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
+    },
+
+    goToCreditPacks(message) {
+      try {
+        if (window.TankGame && window.TankGame.game && window.TankGame.game.state === 'playing') window.TankGame.game.pause();
+      } catch (error) {}
+      this.closeQuickPurchase();
+      this.showPage('shop');
+      this.renderShop();
+      const target = document.querySelector('.coin-pack-panel') || document.getElementById('coinPackGrid') || document.getElementById('page-shop');
+      if (target && target.scrollIntoView) setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+      this.showToast(message || 'Recharge Credits to continue.');
     },
 
     openQuickPurchase(itemKey) {
       const item = SHOP_ITEMS.find((entry) => entry.key === itemKey);
       if (!item) return;
-      this.quickPurchaseItemKey = itemKey;
       const inventory = window.TankGame.auth.getInventory();
+      if (this.isMobileViewport() && Number(inventory.coins || 0) < Number(item.cost || 0)) {
+        this.quickPurchaseItemKey = itemKey;
+        this.goToCreditPacks('Not enough Credits for ' + item.title + '. Recharge first.');
+        return;
+      }
+      this.quickPurchaseItemKey = itemKey;
       document.getElementById('quickPurchaseTitle').textContent = item.title;
       document.getElementById('quickPurchaseDesc').textContent = item.desc;
       document.getElementById('quickPurchaseIcon').textContent = item.icon;
       document.getElementById('quickPurchaseCoins').textContent = inventory.coins;
-      document.getElementById('quickPurchaseCost').textContent = item.cost + ' coins';
+      document.getElementById('quickPurchaseCost').textContent = item.cost + ' Credits';
       document.getElementById('quickPurchaseModal').classList.remove('hidden');
     },
     closeQuickPurchase() {
       this.quickPurchaseItemKey = '';
-      document.getElementById('quickPurchaseModal').classList.add('hidden');
+      const modal = document.getElementById('quickPurchaseModal');
+      if (modal) modal.classList.add('hidden');
     },
 
     bindTouchControls() {
@@ -845,10 +962,19 @@ bindMobileControlButtons() {
     renderLeaderboard() {
       const list = document.getElementById('leaderboardList');
       if (!list) return;
-      const scores = window.TankGame.auth.getScoreHistory().slice(0, 6);
-      const fallback = [{ email: 'AceFox', score: 4200 }, { email: 'NeonTank', score: 3180 }, { email: 'IronKid', score: 2440 }];
-      const data = scores.length ? scores : fallback;
-      list.innerHTML = data.map((item, i) => '<div class="leaderboard-row"><span>#' + (i+1) + '</span><strong>' + (item.email || 'Pilot') + '</strong><em>' + (item.score || 0) + '</em></div>').join('');
+      const rows = window.TankGame.auth.getLeaderboardRows ? window.TankGame.auth.getLeaderboardRows() : [];
+      const current = window.TankGame.auth.getCurrentUser ? window.TankGame.auth.getCurrentUser() : null;
+      list.innerHTML = rows.map((item, i) => {
+        const name = item.name || item.email || 'Pilot';
+        const isMe = current && item.email === current.email;
+        const sub = item.seeded ? 'Live rival' : (isMe ? 'Your best run' : 'Pilot record');
+        return '<div class="leaderboard-row ' + (isMe ? 'is-me' : '') + '"><span>#' + (i + 1) + '</span><strong>' + name + '<small>' + sub + '</small></strong><em>' + Number(item.score || 0).toLocaleString() + '</em></div>';
+      }).join('');
+      const meta = document.getElementById('leaderboardLiveMeta');
+      if (meta) {
+        const now = new Date();
+        meta.textContent = 'LIVE • updated ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
     },
     renderScoreHistory() {
       const box = document.getElementById('scoreHistoryList');
@@ -1029,4 +1155,14 @@ bindMobileControlButtons() {
 
   window.TankGame = window.TankGame || {};
   window.TankGame.ui = UI;
+  let leaderboardRealtimeTimer = null;
+  function startLeaderboardRealtime(){
+    if (leaderboardRealtimeTimer) return;
+    leaderboardRealtimeTimer = setInterval(() => {
+      try {
+        if (document.body && document.body.dataset.page === 'home' && UI.renderLeaderboard) UI.renderLeaderboard();
+      } catch (err) {}
+    }, 10000);
+  }
+  startLeaderboardRealtime();
 })();
