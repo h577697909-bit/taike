@@ -62,6 +62,7 @@
       };
       this.selectedStage = this.loadSelectedStage();
       this.bindNavigation();
+      this.bindLegalPolicyModal();
       this.bindSettings();
       this.bindAuthButtons();
       this.bindGameButtons();
@@ -90,6 +91,61 @@
       });
       document.getElementById('startGameBtn')?.addEventListener('click', () => this.startGameFromSelection());
       document.getElementById('playSelectedStageBtn')?.addEventListener('click', () => this.startGameFromSelection());
+    },
+
+    bindLegalPolicyModal() {
+      const modal = document.getElementById('legalPolicyModal');
+      if (!modal) return;
+      document.querySelectorAll('[data-legal-policy]').forEach((trigger) => {
+        trigger.addEventListener('click', (event) => {
+          event.preventDefault();
+          this.openLegalPolicy(trigger.dataset.legalPolicy, trigger);
+        });
+      });
+      document.querySelectorAll('[data-close-legal-policy]').forEach((trigger) => {
+        trigger.addEventListener('click', () => this.closeLegalPolicy());
+      });
+      document.getElementById('closeLegalPolicyBtn')?.addEventListener('click', () => this.closeLegalPolicy());
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || modal.classList.contains('hidden')) return;
+        event.stopImmediatePropagation();
+        this.closeLegalPolicy();
+      });
+    },
+
+    openLegalPolicy(policy, trigger) {
+      const modal = document.getElementById('legalPolicyModal');
+      const body = document.getElementById('legalPolicyBody');
+      const title = document.getElementById('legalPolicyTitle');
+      const kicker = document.getElementById('legalPolicyKicker');
+      const source = document.querySelector('[data-policy-content="' + policy + '"]');
+      if (!modal || !body || !source) return;
+      const labels = {
+        privacy: { title: 'Privacy Policy', kicker: 'DATA & PRIVACY' },
+        agreement: { title: 'User Agreement', kicker: 'RULES OF PLAY' },
+        refund: { title: 'Refund Policy', kicker: 'PURCHASE SUPPORT' }
+      };
+      const label = labels[policy] || labels.privacy;
+      this.legalPolicyReturnFocus = trigger || document.activeElement;
+      if (title) title.textContent = label.title;
+      if (kicker) kicker.textContent = label.kicker;
+      body.innerHTML = source.innerHTML;
+      body.scrollTop = 0;
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('legal-modal-open');
+      setTimeout(() => document.getElementById('closeLegalPolicyBtn')?.focus(), 40);
+    },
+
+    closeLegalPolicy() {
+      const modal = document.getElementById('legalPolicyModal');
+      if (!modal || modal.classList.contains('hidden')) return;
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('legal-modal-open');
+      if (this.legalPolicyReturnFocus && this.legalPolicyReturnFocus.isConnected) {
+        this.legalPolicyReturnFocus.focus();
+      }
     },
 
     showPage(name) {
