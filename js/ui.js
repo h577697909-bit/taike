@@ -1,11 +1,14 @@
 (function () {
   const COIN_PACKS = [
     { id: 'starter', title: 'Starter Crate', usd: 1.99, hkd: 16, coins: 180, bonus: 20, totalCoins: 200, badge: 'Starter', note: 'Best for your first upgrade and emergency gear.' },
-    { id: 'field', title: 'Field Supply', usd: 4.99, hkd: 40, coins: 500, bonus: 50, totalCoins: 550, badge: 'Popular', note: 'Enough Credits for several battle items.' },
-    { id: 'arsenal', title: 'Command Pack', usd: 9.99, hkd: 78, coins: 1080, bonus: 120, totalCoins: 1200, badge: 'Popular', note: 'Popular pack for gear upgrades and skin unlocks.' },
-    { id: 'hangar', title: 'Hangar Vault', usd: 19.99, hkd: 158, coins: 2200, bonus: 300, totalCoins: 2500, badge: 'Skin Ready', note: 'Unlock premium armor and keep gear stocked.' },
     { id: 'command', title: 'Vault Pack', usd: 49.99, hkd: 388, coins: 6000, bonus: 1000, totalCoins: 7000, badge: 'Best Value', note: 'Best value for long runs, skins, and Battle Gear.' },
-    { id: 'legend', title: 'Legend Pack', usd: 99.99, hkd: 788, coins: 13200, bonus: 1800, totalCoins: 15000, badge: 'Legendary', note: 'For collectors who want every skin and premium upgrade.' }
+    { id: 'arsenal', title: 'Command Pack', usd: 9.99, hkd: 78, coins: 1080, bonus: 120, totalCoins: 1200, badge: 'Popular', note: 'Popular pack for gear upgrades and skin unlocks.' },
+    { id: 'legend', title: 'Legend Pack', usd: 99.99, hkd: 788, coins: 13200, bonus: 1800, totalCoins: 15000, badge: 'Legendary', note: 'For collectors who want every skin and premium upgrade.' },
+    { id: 'hangar', title: 'Hangar Vault', usd: 19.99, hkd: 158, coins: 2200, bonus: 300, totalCoins: 2500, badge: 'Skin Ready', note: 'Unlock premium armor and keep gear stocked.' },
+    { id: 'field', title: 'Field Supply', usd: 4.99, hkd: 40, coins: 500, bonus: 50, totalCoins: 550, badge: 'Popular', note: 'Enough Credits for several battle items.' },
+    { id: 'commander', title: 'Commander Vault', usd: 29.99, hkd: 238, coins: 3400, bonus: 500, totalCoins: 3900, badge: 'High Value', note: 'Built for premium skins, bundles, and longer campaigns.' },
+    { id: 'supply_plus', title: 'Supply Plus', usd: 5.99, hkd: 48, coins: 600, bonus: 80, totalCoins: 680, badge: 'Extra', note: 'A flexible top-up for gear and quick upgrades.' },
+    { id: 'strike', title: 'Strike Pack', usd: 8.99, hkd: 70, coins: 950, bonus: 100, totalCoins: 1050, badge: 'Boost', note: 'A strong boost for gear upgrades and battle supplies.' }
   ];
 
   const SHOP_ITEMS = [
