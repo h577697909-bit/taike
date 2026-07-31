@@ -379,6 +379,34 @@ button,input{font:inherit}button{cursor:pointer}img{max-width:100%;display:block
 .coin-pack-card strong{font-size:1.02rem!important;letter-spacing:-.01em!important}
 .coin-pack-card em{font-size:.94rem!important;color:#e0f2fe!important}
 .coin-pack-card small{font-size:.88rem!important;color:#93c5fd!important}
+.custom-recharge-card{
+  min-height:118px;padding:14px 16px;border-radius:18px;
+  background:linear-gradient(180deg,rgba(255,255,255,.058),rgba(255,255,255,.028));
+  border:1px solid rgba(148,163,184,.18);display:grid;gap:9px;align-content:center;
+  transition:.18s var(--ease);
+}
+.custom-recharge-card:focus-within,.custom-recharge-card.active{
+  border-color:rgba(34,211,238,.62);
+  background:linear-gradient(135deg,rgba(34,211,238,.15),rgba(139,92,246,.14));
+  box-shadow:0 0 30px rgba(34,211,238,.11);
+}
+.custom-recharge-heading{display:flex;align-items:center;gap:10px}
+.custom-recharge-heading .tag{min-width:72px;display:inline-flex;justify-content:center}
+.custom-recharge-heading strong{font-size:1rem;color:#f8fafc}
+.custom-recharge-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.custom-recharge-input{
+  min-width:0;height:38px;padding:0 10px;display:flex;align-items:center;gap:5px;
+  border-radius:12px;background:rgba(2,6,23,.56);border:1px solid rgba(125,211,252,.24);
+  color:#7dd3fc;font-weight:900;
+}
+.custom-recharge-input:focus-within{border-color:#22d3ee;box-shadow:0 0 0 3px rgba(34,211,238,.10)}
+.custom-recharge-input input{
+  width:100%;min-width:0;border:0;outline:0;background:transparent;color:#fff;
+  font:inherit;font-weight:900;
+}
+.custom-recharge-input input::-webkit-inner-spin-button{opacity:.55}
+.custom-recharge-controls .btn{min-height:38px;padding:0 13px;border-radius:12px}
+.custom-recharge-card>small{color:#93c5fd;font-size:.76rem;line-height:1.3}
 .checkout-panel .action-grid.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:stretch;margin-top:14px}
 .checkout-panel .action-grid.three .btn{min-height:52px;border-radius:18px;white-space:normal;line-height:1.15;padding:0 16px;text-align:center;justify-content:center}
 #paymentResult{margin-top:14px;min-height:64px;border-radius:16px}
@@ -419,7 +447,7 @@ button,input{font:inherit}button{cursor:pointer}img{max-width:100%;display:block
   body[data-page="game"] .mobile-mini-btn.lobby{display:block!important}
 }
 @media(max-width:760px){
-  .checkout-panel .action-grid.three{grid-template-columns:1fr;gap:10px}.checkout-panel .action-grid.three .btn{min-height:48px}.coin-pack-card{min-height:78px!important}.shop-credit-badge::before{content:'Credits'}
+  .checkout-panel .action-grid.three{grid-template-columns:1fr;gap:10px}.checkout-panel .action-grid.three .btn{min-height:48px}.coin-pack-card{min-height:78px!important}.shop-credit-badge::before{content:'Credits'}.custom-recharge-card{min-height:112px}
 }
 
 /* Secure payment modal */

@@ -121,7 +121,8 @@
   }
 
   function validateRecordForRequest(record) {
-    if (!record.amount || record.amount <= 0) throw new Error('Select a valid Credit Drop before checkout.');
+    if (!record.amount || record.amount <= 0) throw new Error('Select a valid Credit Pack or enter a custom amount before checkout.');
+    if (record.amount > 999.99) throw new Error('The maximum checkout amount is $999.99.');
     if (!record.total_coins || record.total_coins <= 0) throw new Error('Selected pack has no Credits configured.');
     if (!record.customer.email || !record.customer.email.includes('@')) throw new Error('Enter a valid email before checkout.');
     if (!record.customer.first_name) throw new Error('Enter first name before checkout.');

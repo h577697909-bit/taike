@@ -1,15 +1,18 @@
 (function () {
   const COIN_PACKS = [
     { id: 'starter', title: 'Starter Crate', usd: 1.99, hkd: 16, coins: 180, bonus: 20, totalCoins: 200, badge: 'Starter', note: 'Best for your first upgrade and emergency gear.' },
-    { id: 'command', title: 'Vault Pack', usd: 49.99, hkd: 388, coins: 6000, bonus: 1000, totalCoins: 7000, badge: 'Best Value', note: 'Best value for long runs, skins, and Battle Gear.' },
+    { id: 'command', title: 'Vault Pack', usd: 49.99, hkd: 388, coins: 6000, bonus: 1000, totalCoins: 7000, badge: 'Premium', note: 'A large Credit pack for skins, bundles, and long campaigns.' },
     { id: 'arsenal', title: 'Command Pack', usd: 9.99, hkd: 78, coins: 1080, bonus: 120, totalCoins: 1200, badge: 'Popular', note: 'Popular pack for gear upgrades and skin unlocks.' },
-    { id: 'legend', title: 'Legend Pack', usd: 99.99, hkd: 788, coins: 13200, bonus: 1800, totalCoins: 15000, badge: 'Legendary', note: 'For collectors who want every skin and premium upgrade.' },
+    { id: 'legend', title: 'Legend Pack', usd: 99.99, hkd: 788, coins: 13200, bonus: 1800, totalCoins: 15000, badge: 'Best Value', note: 'The highest Credit total and strongest included bonus.' },
     { id: 'hangar', title: 'Hangar Vault', usd: 19.99, hkd: 158, coins: 2200, bonus: 300, totalCoins: 2500, badge: 'Skin Ready', note: 'Unlock premium armor and keep gear stocked.' },
-    { id: 'field', title: 'Field Supply', usd: 4.99, hkd: 40, coins: 500, bonus: 50, totalCoins: 550, badge: 'Popular', note: 'Enough Credits for several battle items.' },
+    { id: 'field', title: 'Field Supply', usd: 4.99, hkd: 40, coins: 500, bonus: 50, totalCoins: 550, badge: 'Value', note: 'Enough Credits for several battle items.' },
     { id: 'commander', title: 'Commander Vault', usd: 29.99, hkd: 238, coins: 3400, bonus: 500, totalCoins: 3900, badge: 'High Value', note: 'Built for premium skins, bundles, and longer campaigns.' },
     { id: 'supply_plus', title: 'Supply Plus', usd: 5.99, hkd: 48, coins: 600, bonus: 80, totalCoins: 680, badge: 'Extra', note: 'A flexible top-up for gear and quick upgrades.' },
     { id: 'strike', title: 'Strike Pack', usd: 8.99, hkd: 70, coins: 950, bonus: 100, totalCoins: 1050, badge: 'Boost', note: 'A strong boost for gear upgrades and battle supplies.' }
   ];
+  const CUSTOM_RECHARGE_MIN_USD = 1;
+  const CUSTOM_RECHARGE_MAX_USD = 999.99;
+  const CUSTOM_RECHARGE_CREDITS_PER_USD = 100;
 
   const SHOP_ITEMS = [
     { key: 'repair', title: 'Repair Kit', icon: '+', desc: 'Restore 35 Armor instantly. Best emergency recovery.', cost: 90, rarity: 'Common' },
@@ -49,6 +52,8 @@
     selectedStage: 1,
     stageStorageKey: 'tankGameSelectedStage',
     selectedCoinPackId: 'arsenal',
+    customRechargeAmount: '',
+    customCoinPack: null,
     quickPurchaseItemKey: '',
     authMode: 'register',
 
@@ -446,7 +451,7 @@ bindSettings() {
     },
 
     async startSecureCheckout(pack, method, payType, customer) {
-      if (!pack) throw new Error('Select a Credit Drop first.');
+      if (!pack) throw new Error('Select a Credit Pack or enter a custom amount first.');
       if (document.body.dataset.childMode === 'true') throw new Error('Payments are disabled in Safe Mode.');
       this.setPaymentBusy(true, 'Opening secure checkout. Do not refresh this page.');
       this.showToast('Opening secure checkout...');
@@ -458,7 +463,7 @@ bindSettings() {
         }));
         this.currentPaymentId = result.id;
         const box = document.getElementById('paymentResult');
-        if (box) box.textContent = 'Checkout started: ' + result.orderId + '\nReturn to this page after payment to receive Credits.';
+        if (box) box.textContent = 'Checkout started: ' + result.orderId + '\nCredits will be added after the payment is successfully verified.';
         return result;
       } catch (error) {
         this.setPaymentBusy(false, error.message);
@@ -468,10 +473,10 @@ bindSettings() {
     },
 
     updatePaymentModalSummary() {
-      const pack = COIN_PACKS.find((entry) => entry.id === this.selectedCoinPackId) || COIN_PACKS[2];
+      const pack = this.getSelectedCoinPack();
       const label = document.getElementById('modalPackLabel');
       const value = document.getElementById('modalPackValue');
-      if (label) label.textContent = pack.title + ' · $' + pack.usd;
+      if (label) label.textContent = pack.title + ' · $' + Number(pack.usd).toFixed(2);
       if (value) value.textContent = pack.totalCoins + ' Credits';
     },
 
@@ -521,7 +526,7 @@ bindSettings() {
         confirmBtn.addEventListener('click', async () => {
           const form = document.getElementById('paymentForm');
           if (form && typeof form.reportValidity === 'function' && !form.reportValidity()) return;
-          const pack = COIN_PACKS.find((entry) => entry.id === this.selectedCoinPackId) || COIN_PACKS[2];
+          const pack = this.getSelectedCoinPack();
           try {
             await this.startSecureCheckout(pack, this.selectedPaymentMethod || 'Credit Card', this.selectedPayType || 8004);
             this.closePaymentModal();
@@ -996,14 +1001,78 @@ bindMobileControlButtons() {
       const current = window.TankGame.game && window.TankGame.game.currentWeapon ? window.TankGame.game.currentWeapon.key : 'cannon';
       grid.innerHTML = WEAPONS.map((w) => '<div class="weapon-card ' + (w.key === current ? 'active' : '') + '"><div><strong>' + w.title + '</strong><p>' + w.desc + '</p></div><span>' + w.hotkey + '</span></div>').join('');
     },
+    createCustomCoinPack(rawAmount) {
+      const usd = Math.round(Number(rawAmount) * 100) / 100;
+      if (!Number.isFinite(usd) || usd < CUSTOM_RECHARGE_MIN_USD || usd > CUSTOM_RECHARGE_MAX_USD) {
+        throw new Error('Enter a custom amount from $1.00 to $999.99.');
+      }
+      const totalCoins = Math.floor(usd * CUSTOM_RECHARGE_CREDITS_PER_USD);
+      return {
+        id: 'custom',
+        title: 'Custom Recharge',
+        usd,
+        hkd: 0,
+        coins: totalCoins,
+        bonus: 0,
+        totalCoins,
+        badge: 'Custom',
+        note: 'Custom recharges provide 100 Credits per $1.00.'
+      };
+    },
+    getSelectedCoinPack() {
+      if (this.selectedCoinPackId === 'custom' && this.customCoinPack) return this.customCoinPack;
+      return COIN_PACKS.find((entry) => entry.id === this.selectedCoinPackId) || COIN_PACKS[2];
+    },
+    selectCustomRecharge() {
+      const input = document.getElementById('customRechargeAmount');
+      try {
+        const pack = this.createCustomCoinPack(input ? input.value : this.customRechargeAmount);
+        this.customRechargeAmount = pack.usd.toFixed(2);
+        this.customCoinPack = pack;
+        this.selectedCoinPackId = 'custom';
+        this.renderShop();
+        this.showToast('CUSTOM RECHARGE SELECTED');
+      } catch (error) {
+        if (input) {
+          input.setCustomValidity(error.message);
+          input.reportValidity();
+          input.setCustomValidity('');
+          input.focus();
+        }
+        this.showToast(error.message);
+      }
+    },
+    bindCustomRechargeControls() {
+      const input = document.getElementById('customRechargeAmount');
+      const estimate = document.getElementById('customRechargeEstimate');
+      const button = document.getElementById('selectCustomRechargeBtn');
+      if (!input || !estimate || !button) return;
+      const updateEstimate = () => {
+        this.customRechargeAmount = input.value;
+        const amount = Math.round(Number(input.value) * 100) / 100;
+        const valid = Number.isFinite(amount) && amount >= CUSTOM_RECHARGE_MIN_USD && amount <= CUSTOM_RECHARGE_MAX_USD;
+        estimate.textContent = valid
+          ? Math.floor(amount * CUSTOM_RECHARGE_CREDITS_PER_USD) + ' Credits after verified payment'
+          : '$1.00–$999.99 · 100 Credits per $1.00';
+      };
+      input.addEventListener('input', updateEstimate);
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          this.selectCustomRecharge();
+        }
+      });
+      button.addEventListener('click', () => this.selectCustomRecharge());
+      updateEstimate();
+    },
     updateSelectedPackPreview() {
-      const pack = COIN_PACKS.find((entry) => entry.id === this.selectedCoinPackId) || COIN_PACKS[2];
+      const pack = this.getSelectedCoinPack();
       const label = document.getElementById('selectedPackLabel');
       const value = document.getElementById('selectedPackValue');
       const hint = document.getElementById('selectedPackHint');
       if (label) label.textContent = pack.title;
       if (value) value.textContent = pack.totalCoins + ' Credits';
-      if (hint) hint.textContent = pack.note + ' Spend these Credits on Battle Gear, bundles, and tank skins.';
+      if (hint) hint.textContent = pack.note + ' Credits are added only after payment is verified.';
       this.updatePaymentModalSummary();
     },
 
@@ -1015,7 +1084,14 @@ bindMobileControlButtons() {
       const inv = window.TankGame.auth.getInventory();
       this.updateSelectedPackPreview();
       if (coinGrid) {
-        coinGrid.innerHTML = COIN_PACKS.map((p) => '<button class="coin-pack-card ' + (this.selectedCoinPackId === p.id ? 'active' : '') + '" data-coin-pack="' + p.id + '"><span class="tag hot">' + p.badge + '</span><strong>' + p.title + '</strong><em>' + p.totalCoins + ' Credits</em><small>$' + p.usd + ' · instant recharge</small></button>').join('');
+        const customValue = Number.isFinite(Number(this.customRechargeAmount)) ? this.customRechargeAmount : '';
+        coinGrid.innerHTML = COIN_PACKS.map((p) => '<button class="coin-pack-card ' + (this.selectedCoinPackId === p.id ? 'active' : '') + '" data-coin-pack="' + p.id + '"><span class="tag hot">' + p.badge + '</span><strong>' + p.title + '</strong><em>' + p.totalCoins + ' Credits</em><small>$' + Number(p.usd).toFixed(2) + ' · secure checkout</small></button>').join('') +
+          '<div class="custom-recharge-card ' + (this.selectedCoinPackId === 'custom' ? 'active' : '') + '">' +
+            '<div class="custom-recharge-heading"><span class="tag hot">Custom</span><strong>Custom Recharge</strong></div>' +
+            '<div class="custom-recharge-controls"><label class="custom-recharge-input"><span>$</span><input id="customRechargeAmount" type="number" min="1" max="999.99" step="0.01" inputmode="decimal" value="' + customValue + '" placeholder="10.00" aria-label="Custom recharge amount in US dollars"></label><button id="selectCustomRechargeBtn" class="btn neon mini" type="button">Select</button></div>' +
+            '<small id="customRechargeEstimate">$1.00–$999.99 · 100 Credits per $1.00</small>' +
+          '</div>';
+        this.bindCustomRechargeControls();
       }
       if (itemGrid) {
         itemGrid.innerHTML = SHOP_ITEMS.map((item) => '<div class="shop-item-card"><div class="shop-icon">' + item.icon + '</div><strong>' + item.title + '</strong><p>' + item.desc + '</p><button class="btn neon mini" data-buy-item="' + item.key + '">USE CREDITS · ' + item.cost + '</button></div>').join('');
